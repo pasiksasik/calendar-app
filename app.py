@@ -275,6 +275,50 @@ def google_logout():
     return redirect("/")
 
 
+@app.route("/privacy")
+def privacy():
+    return """
+    <!DOCTYPE html>
+    <html lang="pl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Polityka Prywatności - Calendar Assistant AI</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 50px auto;
+                padding: 20px;
+                line-height: 1.6;
+            }
+            h1 { color: #667eea; }
+            h2 { color: #495057; margin-top: 30px; }
+        </style>
+    </head>
+    <body>
+        <h1>Polityka Prywatności</h1>
+        <p><strong>Ostatnia aktualizacja: 18 stycznia 2026</strong></p>
+
+        <h2>Jakie dane zbieramy</h2>
+        <p>Calendar Assistant AI ma dostęp do Twojego Google Calendar tylko w celu dodawania wydarzeń, które sam utworzysz za pośrednictwem naszej usługi.</p>
+
+        <h2>Jak wykorzystujemy Twoje dane</h2>
+        <p>Używamy Google Calendar API do:</p>
+        <ul>
+            <li>Dodawania wydarzeń do Google Calendar, które tworzysz w naszej aplikacji</li>
+            <li>Żadne dane nie są przechowywane na naszych serwerach</li>
+            <li>Żadne dane nie są udostępniane osobom trzecim</li>
+        </ul>
+
+        <h2>Przechowywanie danych</h2>
+        <p>Nie przechowujemy żadnych danych z Twojego Google Calendar. Wszystkie operacje odbywają się w czasie rzeczywistym.</p>
+
+        <h2>Kontakt</h2>
+        <p>W przypadku pytań dotyczących tej polityki prywatności, skontaktuj się: stasikjeschkov@gmail.com</p>
+    </body>
+    </html>
+    """
 # ================== RUN ==================
 
 if __name__ == "__main__":
