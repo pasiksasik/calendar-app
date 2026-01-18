@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+      background: linear-gradient(135deg, #0f0f1a, #18182a);
+      color: #fff;
+    }
+
+    header {
+      padding: 24px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+    }
+
+    header h2 {
+      margin: 0;
+    }
+
+    .logout {
+      padding: 10px 18px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background .2s;
+    }
+
+    .logout:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    main {
+      padding: 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .event {
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 20px;
+      animation: fadeUp .6s ease;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .event h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .event time {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+
+    .empty {
+      opacity: 0.6;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>📆 Ваш календарь</h2>
+  <a class="logout" href="/logout">Выйти</a>
+</header>
+
+<main id="events">
+  <div class="empty">Загрузка событий…</div>
+</main>
+
+<script>
+  fetch("/api/events")
+    .then(r => r.json())
+    .then(events => {
+      const container = document.getElementById("events");
+      container.innerHTML = "";
+
+      if (!events.length) {
+        container.innerHTML = "<div class='empty'>Нет ближайших событий</div>";
+        return;
+      }
+
+      events.forEach(e => {
+        const div = document.createElement("div");
+        div.className = "event";
+
+        const date =
+          e.start?.dateTime ||
+          e.start?.date ||
+          "—";
+
+        div.innerHTML = `
+          <h3>${e.summary || "Без названия"}</h3>
+          <time>${date}</time>
+        `;
+
+        container.appendChild(div);
+      });
+    });
+</script>
+
+</body>
+</html>
