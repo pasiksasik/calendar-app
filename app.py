@@ -35,8 +35,8 @@ app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
 
 # OAuth (Render = HTTPS, но для локалки оставим)
-if os.getenv("OAUTHLIB_INSECURE_TRANSPORT") == "1":
-    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+# Разрешаем HTTP для локальной разработки
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 
 # ================== HELPERS ==================
