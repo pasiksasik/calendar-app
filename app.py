@@ -23,8 +23,12 @@ FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "change-me")
 if not ANTHROPIC_API_KEY:
     raise RuntimeError("ANTHROPIC_API_KEY is not set")
 
+# Сделаем Google OAuth опциональным
 if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-    raise RuntimeError("Google OAuth credentials not set")
+    print("⚠️ WARNING: Google OAuth credentials not set. Google Calendar sync will be disabled.")
+    GOOGLE_OAUTH_ENABLED = False
+else:
+    GOOGLE_OAUTH_ENABLED = True
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 EVENTS_DIR = "user_events"
@@ -96,9 +100,11 @@ def save_events(data):
 
 
 def get_google_flow():
+    if not GOOGLE_OAUTH_ENABLED:
+        return None
+
     # Автоматически определяем окружение
     if os.getenv("RENDER"):
-        # ВАЖНО: Должно совпадать с Google Console
         redirect_uri = "https://calendar-app-slle.onrender.com/oauth2callback"
     else:
         redirect_uri = "http://127.0.0.1:5000/oauth2callback"
@@ -230,6 +236,9 @@ def delete_event(index):
 
 @app.route("/google/login")
 def google_login():
+    if not GOOGLE_OAUTH_ENABLED:
+        return jsonify({"error": "Google OAuth not configured"}), 503
+
     flow = get_google_flow()
 
     authorization_url, state = flow.authorization_url(
@@ -244,6 +253,9 @@ def google_login():
 
 @app.route("/oauth2callback")
 def oauth2callback():
+    if not GOOGLE_OAUTH_ENABLED:
+        return redirect("/?auth=error")
+
     try:
         flow = get_google_flow()
 
@@ -276,6 +288,9 @@ def oauth2callback():
 
 @app.route("/google/sync", methods=["POST"])
 def google_sync():
+    if not GOOGLE_OAUTH_ENABLED:
+        return jsonify({"error": "Google OAuth not configured"}), 503
+
     if "credentials" not in session:
         return jsonify({"auth_required": True}), 401
 
@@ -311,7 +326,10 @@ def google_sync():
 
 @app.route("/google/status")
 def google_status():
-    return jsonify({"authenticated": "credentials" in session})
+    return jsonify({
+        "authenticated": "credentials" in session,
+        "oauth_enabled": GOOGLE_OAUTH_ENABLED
+    })
 
 
 @app.route("/google/logout")
@@ -385,4 +403,5 @@ if __name__ == "__main__":
     print(f"🌍 Running on port {port}")
     print(f"🔐 HTTPS only: {os.getenv('RENDER') is not None}")
     print(f"📁 Events directory: {EVENTS_DIR}")
+    print(f"🔑 Google OAuth: {'Enabled' if GOOGLE_OAUTH_ENABLED else 'Disabled'}")
     app.run(host="0.0.0.0", port=port, debug=False)
