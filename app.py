@@ -27,7 +27,7 @@ if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
     raise RuntimeError("Google OAuth credentials not set")
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-EVENTS_FILE = "events.json"
+EVENTS_DIR = "user_events"
 
 # ================== APP ==================
 
@@ -38,28 +38,61 @@ app.secret_key = FLASK_SECRET_KEY
 if not os.getenv("RENDER"):
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
+# Создаем папку для событий пользователей
+os.makedirs(EVENTS_DIR, exist_ok=True)
+
 
 # ================== HELPERS ==================
 
+def get_user_id():
+    """Получить ID пользователя из сессии"""
+    if "credentials" not in session:
+        return None
+
+    # Используем часть токена как уникальный ID
+    creds = session["credentials"]
+    user_token = creds.get("token", "")
+    if user_token:
+        # Берем первые 16 символов токена как ID
+        return user_token[:16]
+    return None
+
+
+def get_user_events_file():
+    """Получить путь к файлу событий пользователя"""
+    user_id = get_user_id()
+    if not user_id:
+        # Если пользователь не авторизован, используем временный файл сессии
+        session_id = session.get("session_id")
+        if not session_id:
+            import secrets
+            session_id = secrets.token_hex(8)
+            session["session_id"] = session_id
+        return os.path.join(EVENTS_DIR, f"guest_{session_id}.json")
+
+    return os.path.join(EVENTS_DIR, f"user_{user_id}.json")
+
+
 def load_events():
-    if os.path.exists(EVENTS_FILE):
+    """Загрузить события текущего пользователя"""
+    events_file = get_user_events_file()
+    if os.path.exists(events_file):
         try:
-            with open(EVENTS_FILE, "r", encoding="utf-8") as f:
+            with open(events_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            print("Load events error:", e)
+            print(f"Load events error for {events_file}:", e)
     return []
 
 
 def save_events(data):
+    """Сохранить события текущего пользователя"""
+    events_file = get_user_events_file()
     try:
-        with open(EVENTS_FILE, "w", encoding="utf-8") as f:
+        with open(events_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print("Save events error:", e)
-
-
-events = load_events()
+        print(f"Save events error for {events_file}:", e)
 
 
 def get_google_flow():
@@ -170,11 +203,13 @@ Opis wydarzenia:
 
 @app.route("/events", methods=["GET"])
 def get_events():
+    events = load_events()
     return jsonify(events)
 
 
 @app.route("/events", methods=["POST"])
 def add_event():
+    events = load_events()
     data = request.json
     events.append(data)
     save_events(events)
@@ -183,6 +218,7 @@ def add_event():
 
 @app.route("/events/<int:index>", methods=["DELETE"])
 def delete_event(index):
+    events = load_events()
     if 0 <= index < len(events):
         events.pop(index)
         save_events(events)
@@ -248,6 +284,8 @@ def google_sync():
         if not service:
             return jsonify({"auth_required": True}), 401
 
+        # Загружаем события текущего пользователя
+        events = load_events()
         synced = 0
 
         for e in events:
@@ -278,8 +316,18 @@ def google_status():
 
 @app.route("/google/logout")
 def google_logout():
+    # Удаляем файл событий гостевой сессии если был
+    if "session_id" in session:
+        guest_file = os.path.join(EVENTS_DIR, f"guest_{session['session_id']}.json")
+        if os.path.exists(guest_file):
+            try:
+                os.remove(guest_file)
+            except Exception as e:
+                print(f"Error deleting guest file: {e}")
+
     session.pop("credentials", None)
     session.pop("state", None)
+    session.pop("session_id", None)
     return redirect("/")
 
 
@@ -333,7 +381,8 @@ def privacy():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"🚀 Loaded {len(events)} events")
+    print(f"🚀 Starting Calendar Assistant AI")
     print(f"🌍 Running on port {port}")
     print(f"🔐 HTTPS only: {os.getenv('RENDER') is not None}")
+    print(f"📁 Events directory: {EVENTS_DIR}")
     app.run(host="0.0.0.0", port=port, debug=False)
