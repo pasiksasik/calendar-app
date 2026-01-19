@@ -1,9 +1,16 @@
 [
   {
     "date": "2026-01-19",
-    "description": "Spotkanie dotyczące Gleba",
+    "description": "Spotkanie na kawę",
+    "duration": 30,
+    "time": "01:20",
+    "title": "Kawa"
+  },
+  {
+    "date": "2026-01-19",
+    "description": "Spotkanie z Glebką",
     "duration": 60,
-    "time": "10:00",
-    "title": "Spotkanie z Glebem"
+    "time": "14:00",
+    "title": "Spotkanie z Glebką"
   }
 ]

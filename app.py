@@ -63,7 +63,13 @@ events = load_events()
 
 
 def get_google_flow():
-    redirect_uri = "http://127.0.0.1:5000/oauth2callback"
+    # Автоматически определяем окружение
+    if os.getenv("RENDER"):
+        # На Render - используем продакшн URL
+        redirect_uri = "https://calendar-app-slle.onrender.com/oauth2callback"  # ← Добавь /oauth2callback
+    else:
+        # Локально - используем localhost
+        redirect_uri = "http://127.0.0.1:5000/oauth2callback"
 
     client_config = {
         "web": {
