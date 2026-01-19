@@ -169,14 +169,25 @@ def analyze_event():
                     {
                         "role": "user",
                         "content": f"""
-Jesteś asystentem kalendarza.
+Jesteś asystentem kalendarza. Analizujesz opisy wydarzeń i zwracasz szczegóły.
+
 Dzisiaj: {today_str}
-Godzina: {current_time}
+Aktualna godzina: {current_time}
 
-Zwróć TYLKO JSON:
-{{"title": "...", "date": "YYYY-MM-DD", "time": "HH:MM", "duration": liczba_minut, "description": "..."}}
+WAŻNE ZASADY:
+- Jeśli użytkownik podaje konkretną godzinę (np. "o 14:00", "w 12:00"), użyj TEJ godziny jako "time"
+- Jeśli użytkownik NIE podaje godziny (np. "jutro rano"), oszacuj odpowiednią godzinę
+- "duration" to długość trwania wydarzenia w minutach (domyślnie 60)
 
-Opis wydarzenia:
+Zwróć TYLKO JSON w tym formacie:
+{{"title": "nazwa wydarzenia", "date": "YYYY-MM-DD", "time": "HH:MM", "duration": liczba_minut, "description": "krótki opis"}}
+
+Przykłady:
+- "Spotkanie w piątek o 15:30" → time: "15:30"
+- "Kolokwium w poniedziałek w 12:00" → time: "12:00"
+- "Obiad jutro wieczorem" → time: "18:00" (oszacowanie)
+
+Opis wydarzenia od użytkownika:
 "{description}"
 """
                     }
@@ -316,6 +327,9 @@ def google_sync():
 
             service.events().insert(calendarId="primary", body=body).execute()
             synced += 1
+
+        # После успешной синхронизации удаляем все события из локального хранилища
+        save_events([])
 
         return jsonify({"success": True, "synced": synced})
 

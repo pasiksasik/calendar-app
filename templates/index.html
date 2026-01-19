@@ -47,6 +47,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 30px 40px;
             color: white;
+            position: relative;
         }
 
         .header h1 {
@@ -62,6 +63,32 @@
             font-size: 1em;
             opacity: 0.95;
             font-weight: 400;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            display: none;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .logout-btn.show {
+            display: block;
         }
 
         .tabs {
@@ -471,6 +498,14 @@
         .sync-google-btn:active {
             transform: translateY(0);
         }
+
+        @media (max-width: 768px) {
+            .logout-btn {
+                position: static;
+                margin-top: 15px;
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -478,6 +513,9 @@
         <div class="header">
             <h1>🤖 Inteligentny Asystent Kalendarza AI</h1>
             <p>Opisz wydarzenie naturalnie, a AI automatycznie określi wszystkie szczegóły</p>
+            <button class="logout-btn" id="logoutBtn" onclick="logoutGoogle()">
+                🚪 Wyloguj się z Google
+            </button>
         </div>
 
         <div class="tabs">
@@ -563,6 +601,23 @@
         const monthNames = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
                            'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
 
+        // Check auth status and update UI
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/google/status');
+                const data = await response.json();
+
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (data.authenticated) {
+                    logoutBtn.classList.add('show');
+                } else {
+                    logoutBtn.classList.remove('show');
+                }
+            } catch (error) {
+                console.error('Błąd sprawdzania statusu:', error);
+            }
+        }
+
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -636,13 +691,12 @@
         }
 
         function displayResult(data) {
-            // Walidacja i korekta danych
             if (!data.time || data.time === 'null') {
-                data.time = '09:00'; // Domyślna godzina
+                data.time = '09:00';
             }
 
             if (!data.duration || data.duration === 0 || data.duration === '0') {
-                data.duration = 60; // Domyślnie 60 minut
+                data.duration = 60;
             }
 
             const hours = Math.floor(data.duration / 60);
@@ -834,6 +888,18 @@
             }
         }
 
+        // Logout from Google
+        async function logoutGoogle() {
+            if (confirm('🚪 Czy na pewno chcesz się wylogować z Google Calendar?')) {
+                try {
+                    window.location.href = '/google/logout';
+                } catch (error) {
+                    console.error('Błąd wylogowania:', error);
+                    alert('❌ Błąd wylogowania');
+                }
+            }
+        }
+
         // Load events on startup
         fetch('/events')
             .then(response => response.json())
@@ -856,6 +922,11 @@
                 const authCheck = await fetch('/google/status');
                 const authData = await authCheck.json();
 
+                if (!authData.oauth_enabled) {
+                    alert('⚠️ Synchronizacja z Google Calendar nie jest dostępna.\n\nSkontaktuj się z administratorem.');
+                    return;
+                }
+
                 if (!authData.authenticated) {
                     if (confirm('🔐 Musisz się zalogować do Google Calendar.\n\nPrzejść do logowania?')) {
                         window.location.href = '/google/login';
@@ -871,7 +942,6 @@
                     button.disabled = true;
                     button.innerHTML = '<span style="font-size: 1.2em; margin-right: 8px;">⏳</span> Synchronizacja...';
 
-                    // Store original text for later
                     button.dataset.originalText = originalText;
                 }
 
@@ -886,7 +956,6 @@
                 const result = await response.json();
 
                 if (response.status === 401) {
-                    // Need to authenticate
                     if (confirm('🔐 Sesja wygasła. Zalogować się ponownie?')) {
                         window.location.href = '/google/login';
                     }
@@ -898,12 +967,16 @@
                 }
 
                 if (result.success) {
-                    alert(`✅ Sukces!\n\nZsynchronizowano ${result.synced} wydarzeń!\n\n📅 Sprawdź swój Google Calendar.`);
+                    alert(`✅ Sukces!\n\nZsynchronizowano ${result.synced} wydarzeń!\n\n📅 Sprawdź swój Google Calendar.\n\n🗑️ Lokalne wydarzenia zostały usunięte.`);
+
+                    // Odświeżamy listę wydarzeń po synchronizacji
+                    events = [];
+                    renderEventsList();
+                    renderCalendar();
                 } else {
                     alert('❌ Błąd synchronizacji:\n\n' + (result.error || 'Nieznany błąd'));
                 }
 
-                // Restore button
                 if (button) {
                     button.disabled = false;
                     button.innerHTML = button.dataset.originalText || '<span style="font-size: 1.2em; margin-right: 8px;">📅</span> Synchronizuj wszystkie wydarzenia';
@@ -913,7 +986,6 @@
                 console.error('Błąd:', error);
                 alert('❌ Błąd połączenia:\n\n' + error.message);
 
-                // Restore button
                 const buttons = document.querySelectorAll('.sync-google-btn');
                 const button = buttons[0];
                 if (button) {
@@ -928,11 +1000,14 @@
         if (urlParams.get('auth') === 'success') {
             alert('✅ Pomyślnie połączono z Google Calendar!\n\nTeraz możesz synchronizować wydarzenia.');
             window.history.replaceState({}, document.title, '/');
+            checkAuthStatus();
         } else if (urlParams.get('auth') === 'error') {
             alert('❌ Błąd połączenia z Google Calendar\n\nSpróbuj ponownie lub sprawdź ustawienia.');
             window.history.replaceState({}, document.title, '/');
         }
 
+        // Initial status check
+        checkAuthStatus();
         renderCalendar();
         renderEventsList();
     </script>
