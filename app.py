@@ -34,9 +34,9 @@ EVENTS_FILE = "events.json"
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
 
-# OAuth (Render = HTTPS, но для локалки оставим)
-# Разрешаем HTTP для локальной разработки
-os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+# OAuth - только для локальной разработки
+if not os.getenv("RENDER"):
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 
 # ================== HELPERS ==================
@@ -65,10 +65,9 @@ events = load_events()
 def get_google_flow():
     # Автоматически определяем окружение
     if os.getenv("RENDER"):
-        # На Render - используем продакшн URL
-        redirect_uri = "https://calendar-app-slle.onrender.com/oauth2callback"  # ← Добавь /oauth2callback
+        # ВАЖНО: Должно совпадать с Google Console
+        redirect_uri = "https://calendar-app-slle.onrender.com/oauth2callback"
     else:
-        # Локально - используем localhost
         redirect_uri = "http://127.0.0.1:5000/oauth2callback"
 
     client_config = {
@@ -83,15 +82,14 @@ def get_google_flow():
 
     return Flow.from_client_config(
         client_config=client_config,
-        scopes=["https://www.googleapis.com/auth/calendar"],
+        scopes=SCOPES,
         redirect_uri=redirect_uri,
     )
 
 
-
-
-
 def get_calendar_service():
+    if "credentials" not in session:
+        return None
     creds = Credentials(**session["credentials"])
     return build("calendar", "v3", credentials=creds)
 
@@ -164,6 +162,7 @@ Opis wydarzenia:
         return jsonify(event)
 
     except Exception as e:
+        print(f"AI analyze error: {e}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -193,8 +192,6 @@ def delete_event(index):
 
 # ================== GOOGLE OAUTH ==================
 
-from flask import Flask, redirect, request, session
-
 @app.route("/google/login")
 def google_login():
     flow = get_google_flow()
@@ -209,14 +206,19 @@ def google_login():
     return redirect(authorization_url)
 
 
-
-
-
 @app.route("/oauth2callback")
 def oauth2callback():
     try:
         flow = get_google_flow()
+
+        # Проверяем state
+        if "state" not in session:
+            print("🔥 No state in session")
+            return redirect("/?auth=error")
+
         flow.state = session["state"]
+
+        # Получаем токены
         flow.fetch_token(authorization_response=request.url)
 
         creds = flow.credentials
@@ -232,13 +234,8 @@ def oauth2callback():
         return redirect("/?auth=success")
 
     except Exception as e:
-        print("🔥 OAuth callback error:", e)
+        print(f"🔥 OAuth callback error: {e}")
         return redirect("/?auth=error")
-
-
-
-
-
 
 
 @app.route("/google/sync", methods=["POST"])
@@ -248,6 +245,9 @@ def google_sync():
 
     try:
         service = get_calendar_service()
+        if not service:
+            return jsonify({"auth_required": True}), 401
+
         synced = 0
 
         for e in events:
@@ -267,6 +267,7 @@ def google_sync():
         return jsonify({"success": True, "synced": synced})
 
     except HttpError as e:
+        print(f"Google API error: {e}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -278,6 +279,7 @@ def google_status():
 @app.route("/google/logout")
 def google_logout():
     session.pop("credentials", None)
+    session.pop("state", None)
     return redirect("/")
 
 
@@ -325,9 +327,13 @@ def privacy():
     </body>
     </html>
     """
+
+
 # ================== RUN ==================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"Loaded {len(events)} events")
-    app.run(host="0.0.0.0", port=port)
+    print(f"🚀 Loaded {len(events)} events")
+    print(f"🌍 Running on port {port}")
+    print(f"🔐 HTTPS only: {os.getenv('RENDER') is not None}")
+    app.run(host="0.0.0.0", port=port, debug=False)
