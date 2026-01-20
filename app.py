@@ -334,7 +334,15 @@ Najbliższe dni (UŻYJ DOKŁADNIE TYCH DAT):
 ZADANIE:
 Użytkownik chce dodać: "{description}"
 
+KRYTYCZNIE WAŻNE - GODZINY:
+- Jeśli użytkownik pisze konkretną godzinę (np. "6:30", "w 6:30", "o 6:30", "в 6:30"), użyj DOKŁADNIE tej godziny
+- NIE zaokrąglaj i NIE zmieniaj godziny podanej przez użytkownika
+- Format godziny: HH:MM (np. "06:30", a nie "07:30")
+- Przykład: "в 6:30 завтра утром" → time: "06:30"
+- Przykład: "o 14:30 w środę" → time: "14:30"
+
 KRYTYCZNIE WAŻNE - DNI TYGODNIA:
+
 - Jeśli użytkownik pisze "jutro" / "завтра" → użyj daty {(now + timedelta(days=1)).strftime('%Y-%m-%d')}
 - Jeśli użytkownik pisze "pojutrze" / "послезавтра" → użyj daty {(now + timedelta(days=2)).strftime('%Y-%m-%d')}
 - Jeśli użytkownik pisze dzień tygodnia (np. "w środę", "в среду"), KONIECZNIE znajdź NAJBLIŻSZĄ datę tego dnia z listy powyżej
