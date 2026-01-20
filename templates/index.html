@@ -918,10 +918,32 @@
         let currentCalendarDate = new Date();
         let allEvents = [];
 
+        async function restoreSession() {
+            try {
+                const response = await fetch('/google/status');
+                const data = await response.json();
+
+                console.log('Session status:', data);
+
+                if (data.authenticated) {
+                    console.log('User is authenticated');
+                    // Пользователь залогинен, проверяем что welcome screen скрыт
+                    if (!document.getElementById('appWrapper').classList.contains('show')) {
+                        hideWelcomeScreen();
+                    }
+                }
+            } catch (error) {
+                console.error('Error restoring session:', error);
+            }
+        }
+
         async function checkInitialState() {
             const urlParams = new URLSearchParams(window.location.search);
             const mode = urlParams.get('mode');
             const auth = urlParams.get('auth');
+
+            // Сначала пытаемся восстановить сессию
+            await restoreSession();
 
             if (mode === 'guest' || auth === 'success' || auth === 'error') {
                 hideWelcomeScreen();
@@ -1307,17 +1329,14 @@
             const year = currentCalendarDate.getFullYear();
             const month = currentCalendarDate.getMonth();
 
-            // Set month title
             const monthNames = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
                               'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
             document.getElementById('calendarMonth').textContent = `${monthNames[month]} ${year}`;
 
-            // Get first day of month (0 = Sunday, need to convert to Monday = 0)
             const firstDay = new Date(year, month, 1);
             let firstDayWeekday = firstDay.getDay();
-            firstDayWeekday = firstDayWeekday === 0 ? 6 : firstDayWeekday - 1; // Convert to Mon=0
+            firstDayWeekday = firstDayWeekday === 0 ? 6 : firstDayWeekday - 1;
 
-            // Get number of days in month
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const daysInPrevMonth = new Date(year, month, 0).getDate();
 
@@ -1327,7 +1346,6 @@
             const today = new Date();
             const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-            // Previous month days
             for (let i = firstDayWeekday - 1; i >= 0; i--) {
                 const day = daysInPrevMonth - i;
                 const dayDiv = document.createElement('div');
@@ -1336,7 +1354,6 @@
                 calendarDays.appendChild(dayDiv);
             }
 
-            // Current month days
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const dayDiv = document.createElement('div');
@@ -1348,7 +1365,6 @@
 
                 let dayHTML = `<div class="day-number">${day}</div><div class="day-events">`;
 
-                // Find events for this day
                 const dayEvents = allEvents.filter(e => e.date === dateStr);
                 dayEvents.forEach(event => {
                     const color = event.color || '#4285f4';
@@ -1360,9 +1376,8 @@
                 calendarDays.appendChild(dayDiv);
             }
 
-            // Next month days to fill grid
             const totalCells = calendarDays.children.length;
-            const remainingCells = 42 - totalCells; // 6 rows * 7 days
+            const remainingCells = 42 - totalCells;
             for (let day = 1; day <= remainingCells; day++) {
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'calendar-day other-month';
@@ -1423,40 +1438,36 @@
             }
         }
 
-async function syncToGoogle() {
-    try {
-        const authCheck = await fetch('/google/status');
-        const authData = await authCheck.json();
+        async function syncToGoogle() {
+            try {
+                const authCheck = await fetch('/google/status');
+                const authData = await authCheck.json();
 
-        if (!authData.authenticated) {
-            if (confirm('🔐 Musisz się zalogować.\n\nPrzejść do logowania?')) {
-                window.location.href = '/google/login';
+                if (!authData.authenticated) {
+                    if (confirm('🔐 Musisz się zalogować.\n\nPrzejść do logowania?')) {
+                        window.location.href = '/google/login';
+                    }
+                    return;
+                }
+
+                const response = await fetch('/google/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ Zsynchronizowano ${result.synced} wydarzeń!`);
+                    loadEventsData();
+                } else {
+                    alert('❌ Błąd synchronizacji: ' + (result.error || 'Nieznany błąd'));
+                }
+            } catch (error) {
+                console.error('Błąd:', error);
+                alert('❌ Błąd połączenia: ' + error.message);
             }
-            return;
         }
-
-        const response = await fetch('/google/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            let message = `✅ Zsynchronizowano ${result.synced} wydarzeń!`;
-            if (result.skipped > 0) {
-                message += `\n⚠️ Pominięto ${result.skipped} duplikatów (już istnieją w Google Calendar)`;
-            }
-            alert(message);
-            loadEventsData();
-        } else {
-            alert('❌ Błąd synchronizacji: ' + (result.error || 'Nieznany błąd'));
-        }
-    } catch (error) {
-        console.error('Błąd:', error);
-        alert('❌ Błąd połączenia: ' + error.message);
-    }
-}
 
         async function logoutGoogle() {
             if (confirm('🚪 Czy na pewno chcesz się wylogować?')) {

@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask_session import Session
 import requests
 import os
 from dotenv import load_dotenv
@@ -31,6 +32,7 @@ else:
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 EVENTS_DIR = "user_events"
+SESSION_DIR = "flask_session"  # Директория для хранения сессий
 
 # Google Calendar color mapping
 GOOGLE_COLOR_MAP = {
@@ -50,11 +52,33 @@ GOOGLE_COLOR_MAP = {
 
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_FILE_DIR'] = SESSION_DIR
+app.config['SESSION_COOKIE_NAME'] = 'calendar_session'
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = bool(os.getenv("RENDER"))  # True только на HTTPS
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # Сессия живет 30 дней
+
+# Инициализируем Flask-Session
+Session(app)
 
 if not os.getenv("RENDER"):
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 os.makedirs(EVENTS_DIR, exist_ok=True)
+os.makedirs(SESSION_DIR, exist_ok=True)
+
+
+# ================== MIDDLEWARE ==================
+
+@app.before_request
+def make_session_permanent():
+    """Делаем сессию постоянной для залогиненных пользователей"""
+    if "credentials" in session:
+        session.permanent = True
+    elif session.get("guest_mode"):
+        session.permanent = False  # Гостевая сессия не постоянная
 
 
 # ================== HELPERS ==================
@@ -229,7 +253,9 @@ def home():
 @app.route("/guest")
 def guest_mode():
     """Вход как гость"""
+    session.clear()  # Очищаем любую предыдущую сессию
     session["guest_mode"] = True
+    session.permanent = False  # Гостевая сессия НЕ постоянная (закроется при закрытии браузера)
     return redirect("/?mode=guest")
 
 
@@ -499,6 +525,7 @@ def google_login():
     )
 
     session["state"] = state
+    session.permanent = True  # Устанавливаем постоянную сессию сразу
     return redirect(authorization_url)
 
 
@@ -527,6 +554,7 @@ def oauth2callback():
             "scopes": creds.scopes,
         }
         session["guest_mode"] = False
+        session.permanent = True  # Делаем сессию постоянной для залогиненных пользователей
 
         return redirect("/?auth=success")
 
@@ -592,9 +620,7 @@ def google_sync():
 
         return jsonify({
             "success": True,
-            "synced": synced,
-            "skipped": skipped,
-            "message": f"Zsynchronizowano {synced} wydarzeń, pominięto {skipped} (już w Google Calendar)"
+            "synced": synced
         })
 
     except HttpError as e:
@@ -613,7 +639,21 @@ def google_status():
 
 @app.route("/google/logout")
 def google_logout():
-    if "session_id" in session:
+    user_id = get_user_id()
+
+    # Удаляем файл событий залогиненного пользователя (опционально)
+    if user_id:
+        user_file = os.path.join(EVENTS_DIR, f"user_{user_id}.json")
+        if os.path.exists(user_file):
+            try:
+                # Раскомментируйте следующую строку, если хотите удалять данные при выходе
+                # os.remove(user_file)
+                pass
+            except Exception as e:
+                print(f"Error deleting user file: {e}")
+
+    # Удаляем гостевой файл только если был гость
+    if session.get("guest_mode") and "session_id" in session:
         guest_file = os.path.join(EVENTS_DIR, f"guest_{session['session_id']}.json")
         if os.path.exists(guest_file):
             try:
@@ -621,10 +661,7 @@ def google_logout():
             except Exception as e:
                 print(f"Error deleting guest file: {e}")
 
-    session.pop("credentials", None)
-    session.pop("state", None)
-    session.pop("session_id", None)
-    session.pop("guest_mode", None)
+    session.clear()
     return redirect("/")
 
 
