@@ -23,7 +23,6 @@ FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "change-me")
 if not ANTHROPIC_API_KEY:
     raise RuntimeError("ANTHROPIC_API_KEY is not set")
 
-# Сделаем Google OAuth опциональным
 if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
     print("⚠️ WARNING: Google OAuth credentials not set. Google Calendar sync will be disabled.")
     GOOGLE_OAUTH_ENABLED = False
@@ -33,16 +32,28 @@ else:
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 EVENTS_DIR = "user_events"
 
+# Google Calendar color mapping
+GOOGLE_COLOR_MAP = {
+    "#4285f4": "1",  # Blue
+    "#dc2127": "11",  # Red
+    "#f4b400": "5",  # Yellow
+    "#0f9d58": "10",  # Green
+    "#ff6d00": "6",  # Orange
+    "#7986cb": "9",  # Lavender
+    "#33b679": "2",  # Sage
+    "#8e24aa": "3",  # Grape
+    "#e67c73": "4",  # Flamingo
+    "#616161": "8",  # Graphite
+}
+
 # ================== APP ==================
 
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
 
-# OAuth - только для локальной разработки
 if not os.getenv("RENDER"):
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
-# Создаем папку для событий пользователей
 os.makedirs(EVENTS_DIR, exist_ok=True)
 
 
@@ -53,11 +64,9 @@ def get_user_id():
     if "credentials" not in session:
         return None
 
-    # Используем часть токена как уникальный ID
     creds = session["credentials"]
     user_token = creds.get("token", "")
     if user_token:
-        # Берем первые 16 символов токена как ID
         return user_token[:16]
     return None
 
@@ -66,7 +75,6 @@ def get_user_events_file():
     """Получить путь к файлу событий пользователя"""
     user_id = get_user_id()
     if not user_id:
-        # Если пользователь не авторизован, используем временный файл сессии
         session_id = session.get("session_id")
         if not session_id:
             import secrets
@@ -103,7 +111,6 @@ def get_google_flow():
     if not GOOGLE_OAUTH_ENABLED:
         return None
 
-    # Автоматически определяем окружение
     if os.getenv("RENDER"):
         redirect_uri = "https://calendar-app-slle.onrender.com/oauth2callback"
     else:
@@ -133,11 +140,97 @@ def get_calendar_service():
     return build("calendar", "v3", credentials=creds)
 
 
+def get_google_calendar_events(days_ahead=14):
+    """Получить события из Google Calendar на ближайшие дни"""
+    try:
+        service = get_calendar_service()
+        if not service:
+            return []
+
+        now = datetime.utcnow()
+        time_min = now.isoformat() + 'Z'
+        time_max = (now + timedelta(days=days_ahead)).isoformat() + 'Z'
+
+        events_result = service.events().list(
+            calendarId='primary',
+            timeMin=time_min,
+            timeMax=time_max,
+            maxResults=100,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+
+        events = events_result.get('items', [])
+
+        formatted_events = []
+        for event in events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            end = event['end'].get('dateTime', event['end'].get('date'))
+
+            formatted_events.append({
+                'title': event.get('summary', 'Bez tytułu'),
+                'start': start,
+                'end': end,
+                'description': event.get('description', '')
+            })
+
+        return formatted_events
+    except Exception as e:
+        print(f"Error fetching Google Calendar events: {e}")
+        return []
+
+
+def parse_google_event_to_local(google_event):
+    """Конвертировать событие из Google Calendar в локальный формат"""
+    try:
+        start = google_event['start']
+        end = google_event['end']
+
+        # Parse datetime
+        if 'dateTime' in start:
+            start_dt = datetime.fromisoformat(start['dateTime'].replace('Z', '+00:00'))
+            end_dt = datetime.fromisoformat(end['dateTime'].replace('Z', '+00:00'))
+
+            date = start_dt.strftime('%Y-%m-%d')
+            time = start_dt.strftime('%H:%M')
+            duration = int((end_dt - start_dt).total_seconds() / 60)
+        else:
+            # All-day event
+            date = start['date']
+            time = '00:00'
+            duration = 1440  # Full day
+
+        # Get color
+        color_id = google_event.get('colorId', '1')
+        color_map_reverse = {v: k for k, v in GOOGLE_COLOR_MAP.items()}
+        color = color_map_reverse.get(color_id, '#4285f4')
+
+        return {
+            'title': google_event.get('summary', 'Bez tytułu'),
+            'date': date,
+            'time': time,
+            'duration': duration,
+            'description': google_event.get('description', ''),
+            'color': color,
+            'imported_from_google': True  # Маркер импортированного события
+        }
+    except Exception as e:
+        print(f"Error parsing Google event: {e}")
+        return None
+
+
 # ================== ROUTES ==================
 
 @app.route("/")
 def home():
     return render_template("index.html")
+
+
+@app.route("/guest")
+def guest_mode():
+    """Вход как гость"""
+    session["guest_mode"] = True
+    return redirect("/?mode=guest")
 
 
 # ================== AI ANALYZE ==================
@@ -154,6 +247,37 @@ def analyze_event():
     current_time = now.strftime("%H:%M")
     today_str = now.strftime("%Y-%m-%d")
 
+    # Добавляем информацию о дне недели
+    weekday_names_pl = ['poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota', 'niedziela']
+    weekday_names_ru = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье']
+    current_weekday = now.weekday()  # 0 = Monday
+    today_name_pl = weekday_names_pl[current_weekday]
+    today_name_ru = weekday_names_ru[current_weekday]
+
+    # Вычисляем ближайшую среду для примера
+    days_until_wednesday = (2 - current_weekday) % 7
+    if days_until_wednesday == 0:
+        days_until_wednesday = 7
+    next_wednesday = (now + timedelta(days=days_until_wednesday)).strftime('%Y-%m-%d')
+
+    existing_events = load_events()
+    google_events = get_google_calendar_events()
+
+    events_context = "Istniejące wydarzenia użytkownika:\n"
+    for evt in existing_events:
+        events_context += f"- {evt['date']} {evt.get('time', '')} - {evt['title']} ({evt.get('duration', 60)} minut)\n"
+
+    for gevt in google_events:
+        events_context += f"- {gevt['start']} do {gevt['end']} - {gevt['title']}\n"
+
+    # Генерируем список ближайших 14 дней
+    next_days_list = []
+    for i in range(1, 15):
+        future_date = now + timedelta(days=i)
+        future_weekday = future_date.weekday()
+        date_str = future_date.strftime('%Y-%m-%d')
+        next_days_list.append(f"{date_str} - {weekday_names_pl[future_weekday]} ({weekday_names_ru[future_weekday]})")
+
     try:
         response = requests.post(
             "https://api.anthropic.com/v1/messages",
@@ -164,31 +288,66 @@ def analyze_event():
             },
             json={
                 "model": "claude-sonnet-4-20250514",
-                "max_tokens": 800,
+                "max_tokens": 1500,
                 "messages": [
                     {
                         "role": "user",
                         "content": f"""
-Jesteś asystentem kalendarza. Analizujesz opisy wydarzeń i zwracasz szczegóły.
+Jesteś inteligentnym asystentem kalendarza. Analizujesz opisy wydarzeń i proponujesz najlepsze terminy.
 
+WAŻNE - INFORMACJE O DZISIEJSZEJ DACIE:
 Dzisiaj: {today_str}
+Dzień tygodnia: {today_name_pl} (po polsku) / {today_name_ru} (по-русски)
 Aktualna godzina: {current_time}
 
-WAŻNE ZASADY:
-- Jeśli użytkownik podaje konkretną godzinę (np. "o 14:00", "w 12:00"), użyj TEJ godziny jako "time"
-- Jeśli użytkownik NIE podaje godziny (np. "jutro rano"), oszacuj odpowiednią godzinę
-- "duration" to długość trwania wydarzenia w minutach (domyślnie 60)
+Najbliższe dni (UŻYJ DOKŁADNIE TYCH DAT):
+{chr(10).join(next_days_list)}
 
-Zwróć TYLKO JSON w tym formacie:
-{{"title": "nazwa wydarzenia", "date": "YYYY-MM-DD", "time": "HH:MM", "duration": liczba_minut, "description": "krótki opis"}}
+{events_context}
 
-Przykłady:
-- "Spotkanie w piątek o 15:30" → time: "15:30"
-- "Kolokwium w poniedziałek w 12:00" → time: "12:00"
-- "Obiad jutro wieczorem" → time: "18:00" (oszacowanie)
+ZADANIE:
+Użytkownik chce dodać: "{description}"
 
-Opis wydarzenia od użytkownika:
-"{description}"
+KRYTYCZNIE WAŻNE - DNI TYGODNIA:
+- Jeśli użytkownik pisze "jutro" / "завтра" → użyj daty {(now + timedelta(days=1)).strftime('%Y-%m-%d')}
+- Jeśli użytkownik pisze "pojutrze" / "послезавтра" → użyj daty {(now + timedelta(days=2)).strftime('%Y-%m-%d')}
+- Jeśli użytkownik pisze dzień tygodnia (np. "w środę", "в среду"), KONIECZNIE znajdź NAJBLIŻSZĄ datę tego dnia z listy powyżej
+- PRZYKŁAD KONKRETNY: Dziś jest {today_name_pl} {today_str}. Jeśli użytkownik napisze "w środę" lub "w środę o 7 rano", musisz użyć daty środy z listy powyżej (to jest {next_wednesday})
+
+UWAGA: NIE wymyślaj dat! TYLKO daty z listy "Najbliższe dni"!
+
+ZASADY:
+1. Użytkownik może pisać po polsku lub po rosyjsku - zrozum obie języki
+2. ZAWSZE używaj DOKŁADNYCH dat z listy "Najbliższe dni" powyżej - NIE wymyślaj własnych dat
+3. Jeśli użytkownik podaje konkretny termin, sprawdź czy nie koliduje z istniejącymi wydarzeniami
+4. Jeśli jest konflikt, zaproponuj 3 alternatywne terminy
+5. Jeśli użytkownik NIE podaje terminu, zaproponuj 3 najlepsze wolne terminy w ciągu najbliższych 7 dni
+6. Uwzględnij rozsądne godziny (8:00-20:00)
+7. Unikaj weekendów dla wydarzeń zawodowych
+8. Zostawiaj przerwy między wydarzeniami (min 30 minut)
+
+ODPOWIEDŹ W FORMACIE JSON:
+{{
+  "requested_event": {{
+    "title": "nazwa",
+    "date": "YYYY-MM-DD",
+    "time": "HH:MM",
+    "duration": liczba_minut,
+    "description": "opis",
+    "has_conflict": true/false
+  }},
+  "suggestions": [
+    {{
+      "date": "YYYY-MM-DD",
+      "time": "HH:MM",
+      "duration": liczba_minut,
+      "reason": "dlaczego ten termin jest dobry"
+    }},
+    // ... 2 więcej sugestii
+  ]
+}}
+
+Zwróć TYLKO JSON, bez dodatkowego tekstu.
 """
                     }
                 ],
@@ -203,13 +362,17 @@ Opis wydarzenia od użytkownika:
         if not match:
             return jsonify({"error": "Invalid JSON from AI"}), 500
 
-        event = json.loads(match.group(0))
+        event_data = json.loads(match.group(0))
 
-        # safety
-        event["time"] = event.get("time") or "09:00"
-        event["duration"] = max(int(event.get("duration", 60)), 15)
+        if "requested_event" in event_data:
+            evt = event_data["requested_event"]
+            evt["time"] = evt.get("time") or "09:00"
+            evt["duration"] = max(int(evt.get("duration", 60)), 15)
 
-        return jsonify(event)
+        if "suggestions" not in event_data:
+            event_data["suggestions"] = []
+
+        return jsonify(event_data)
 
     except Exception as e:
         print(f"AI analyze error: {e}")
@@ -228,6 +391,11 @@ def get_events():
 def add_event():
     events = load_events()
     data = request.json
+
+    # Ensure color is saved
+    if 'color' not in data:
+        data['color'] = '#4285f4'
+
     events.append(data)
     save_events(events)
     return jsonify({"success": True})
@@ -241,6 +409,78 @@ def delete_event(index):
         save_events(events)
         return jsonify({"success": True})
     return jsonify({"error": "Not found"}), 404
+
+
+# ================== GOOGLE CALENDAR IMPORT ==================
+
+@app.route("/google/import", methods=["GET"])
+def import_google_calendar():
+    """Получить события из Google Calendar (только для отображения)"""
+    try:
+        google_events = get_google_calendar_events(days_ahead=30)
+        return jsonify({
+            "success": True,
+            "events": google_events,
+            "count": len(google_events)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/google/import-to-local", methods=["POST"])
+def import_google_to_local():
+    """Импортировать события из Google Calendar в локальное хранилище"""
+    try:
+        service = get_calendar_service()
+        if not service:
+            return jsonify({"auth_required": True}), 401
+
+        # Get events from Google Calendar (90 days ahead)
+        now = datetime.utcnow()
+        time_min = now.isoformat() + 'Z'
+        time_max = (now + timedelta(days=90)).isoformat() + 'Z'
+
+        events_result = service.events().list(
+            calendarId='primary',
+            timeMin=time_min,
+            timeMax=time_max,
+            maxResults=100,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+
+        google_events = events_result.get('items', [])
+
+        # Load existing local events
+        local_events = load_events()
+
+        # Convert and add Google events
+        imported_count = 0
+        for g_event in google_events:
+            local_event = parse_google_event_to_local(g_event)
+            if local_event:
+                # Check if event already exists
+                exists = any(
+                    e['title'] == local_event['title'] and
+                    e['date'] == local_event['date'] and
+                    e['time'] == local_event['time']
+                    for e in local_events
+                )
+
+                if not exists:
+                    local_events.append(local_event)
+                    imported_count += 1
+
+        save_events(local_events)
+
+        return jsonify({
+            "success": True,
+            "count": imported_count
+        })
+
+    except Exception as e:
+        print(f"Import to local error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 # ================== GOOGLE OAUTH ==================
@@ -270,14 +510,11 @@ def oauth2callback():
     try:
         flow = get_google_flow()
 
-        # Проверяем state
         if "state" not in session:
             print("🔥 No state in session")
             return redirect("/?auth=error")
 
         flow.state = session["state"]
-
-        # Получаем токены
         flow.fetch_token(authorization_response=request.url)
 
         creds = flow.credentials
@@ -289,6 +526,7 @@ def oauth2callback():
             "client_secret": creds.client_secret,
             "scopes": creds.scopes,
         }
+        session["guest_mode"] = False
 
         return redirect("/?auth=success")
 
@@ -310,28 +548,54 @@ def google_sync():
         if not service:
             return jsonify({"auth_required": True}), 401
 
-        # Загружаем события текущего пользователя
         events = load_events()
+
         synced = 0
+        skipped = 0
 
         for e in events:
+            # Пропускаем события, которые были импортированы из Google Calendar
+            if e.get('imported_from_google', False):
+                skipped += 1
+                print(f"Skipping imported event: {e['title']}")
+                continue
+
+            # Parse date and time in local timezone
             start = datetime.strptime(f"{e['date']} {e['time']}", "%Y-%m-%d %H:%M")
             end = start + timedelta(minutes=e["duration"])
+
+            # Get Google Calendar color ID
+            color = e.get('color', '#4285f4')
+            color_id = GOOGLE_COLOR_MAP.get(color, '1')
 
             body = {
                 "summary": e["title"],
                 "description": e.get("description", ""),
-                "start": {"dateTime": start.isoformat(), "timeZone": "Europe/Warsaw"},
-                "end": {"dateTime": end.isoformat(), "timeZone": "Europe/Warsaw"},
+                "start": {
+                    "dateTime": start.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "timeZone": "Europe/Warsaw"
+                },
+                "end": {
+                    "dateTime": end.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "timeZone": "Europe/Warsaw"
+                },
+                "colorId": color_id
             }
 
             service.events().insert(calendarId="primary", body=body).execute()
             synced += 1
+            print(f"Synced event: {e['title']} at {start}")
 
-        # После успешной синхронизации удаляем все события из локального хранилища
-        save_events([])
+        # Удаляем только НЕ импортированные события
+        remaining_events = [e for e in events if e.get('imported_from_google', False)]
+        save_events(remaining_events)
 
-        return jsonify({"success": True, "synced": synced})
+        return jsonify({
+            "success": True,
+            "synced": synced,
+            "skipped": skipped,
+            "message": f"Zsynchronizowano {synced} wydarzeń, pominięto {skipped} (już w Google Calendar)"
+        })
 
     except HttpError as e:
         print(f"Google API error: {e}")
@@ -342,13 +606,13 @@ def google_sync():
 def google_status():
     return jsonify({
         "authenticated": "credentials" in session,
-        "oauth_enabled": GOOGLE_OAUTH_ENABLED
+        "oauth_enabled": GOOGLE_OAUTH_ENABLED,
+        "guest_mode": session.get("guest_mode", False)
     })
 
 
 @app.route("/google/logout")
 def google_logout():
-    # Удаляем файл событий гостевой сессии если был
     if "session_id" in session:
         guest_file = os.path.join(EVENTS_DIR, f"guest_{session['session_id']}.json")
         if os.path.exists(guest_file):
@@ -360,6 +624,7 @@ def google_logout():
     session.pop("credentials", None)
     session.pop("state", None)
     session.pop("session_id", None)
+    session.pop("guest_mode", None)
     return redirect("/")
 
 
@@ -380,7 +645,7 @@ def privacy():
                 padding: 20px;
                 line-height: 1.6;
             }
-            h1 { color: #667eea; }
+            h1 { color: #4A90E2; }
             h2 { color: #495057; margin-top: 30px; }
         </style>
     </head>
@@ -403,7 +668,7 @@ def privacy():
         <p>Nie przechowujemy żadnych danych z Twojego Google Calendar. Wszystkie operacje odbywają się w czasie rzeczywistym.</p>
 
         <h2>Kontakt</h2>
-        <p>W przypadku pytań dotyczących tej polityki prywatności, skontaktuj się: stasikjeschkov@gmail.com</p>
+        <p>W przypadku pytań dotyczących tej polityki prywatności, skontaktuj się: stanislavozhiltsov@gmail.com</p>
     </body>
     </html>
     """

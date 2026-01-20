@@ -1,0 +1,34 @@
+[
+  {
+    "title": "бла бла",
+    "date": "2026-01-21",
+    "time": "07:15",
+    "duration": 60,
+    "description": "",
+    "color": "#4285f4"
+  },
+  {
+    "title": "пойти в магаз",
+    "date": "2026-01-21",
+    "time": "08:30",
+    "duration": 60,
+    "description": "поход в магазин",
+    "color": "#0f9d58"
+  },
+  {
+    "title": "встреча с Егором",
+    "date": "2026-01-23",
+    "time": "14:00",
+    "duration": 60,
+    "description": "Spotkanie z Egorem",
+    "color": "#f4b400"
+  },
+  {
+    "title": "Spotkanie z Glebem",
+    "date": "2026-01-24",
+    "time": "10:00",
+    "duration": 60,
+    "description": "Spotkanie z Glebem w piątek o 10:00",
+    "color": "#dc2127"
+  }
+]
