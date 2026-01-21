@@ -136,7 +136,7 @@ def get_google_flow():
         return None
 
     if os.getenv("RENDER"):
-        redirect_uri = "https://calendar-app-slle.onrender.com/oauth2callback"
+        redirect_uri = "https://calendar-app-1-3ajb.onrender.com/oauth2callback"
     else:
         redirect_uri = "http://127.0.0.1:5000/oauth2callback"
 
