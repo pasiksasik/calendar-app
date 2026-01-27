@@ -32,6 +32,8 @@
             color: var(--text);
             min-height: 100vh;
             line-height: 1.6;
+            overflow-x: hidden;
+            max-width: 100vw;
         }
 
         /* Welcome Screen */
@@ -157,6 +159,8 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            overflow-x: hidden;
+            width: 100%;
         }
 
         /* Header */
@@ -634,6 +638,8 @@
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 8px;
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
         .calendar-day {
@@ -646,6 +652,11 @@
             transition: all 0.3s;
             position: relative;
             min-height: 80px;
+            max-width: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
         }
 
         .calendar-day:hover {
@@ -666,12 +677,21 @@
             font-weight: 600;
             margin-bottom: 4px;
             font-size: 0.875rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+            box-sizing: border-box;
+            flex-shrink: 0;
         }
 
         .day-events {
             display: flex;
             flex-direction: column;
             gap: 2px;
+            width: 100%;
+            max-width: 100%;
+            overflow: hidden;
         }
 
         .day-event {
@@ -682,6 +702,10 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            max-width: 100%;
+            width: 100%;
+            box-sizing: border-box;
+            display: block;
         }
 
         /* Events List */
@@ -732,25 +756,31 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            * {
+                max-width: 100%;
+            }
+
             body {
-                overflow-x: hidden;
+                overflow-x: hidden !important;
             }
 
             .app-wrapper {
                 padding: 10px;
                 overflow-x: hidden;
+                max-width: 100vw;
             }
 
             .container {
-                max-width: 100%;
+                padding: 0;
                 overflow-x: hidden;
+                max-width: 100vw;
             }
 
             .header {
                 flex-direction: column;
                 text-align: center;
                 gap: 16px;
-                padding: 20px 16px;
+                padding: 20px 12px;
             }
 
             .header-left {
@@ -799,15 +829,16 @@
             }
 
             .card {
-                padding: 20px 16px;
+                padding: 20px 12px;
                 margin-bottom: 16px;
+                overflow-x: hidden;
             }
 
             .card-title {
                 font-size: 1.125rem;
             }
 
-            /* КАЛЕНДАРЬ - КЛЮЧЕВЫЕ ИСПРАВЛЕНИЯ */
+            /* КАЛЕНДАРЬ */
             .calendar-header {
                 flex-direction: column;
                 gap: 12px;
@@ -824,28 +855,33 @@
             }
 
             .calendar-weekdays {
-                gap: 3px;
-                grid-template-columns: repeat(7, 1fr);
+                gap: 2px;
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+                overflow-x: hidden;
             }
 
             .calendar-weekday {
-                padding: 8px 2px;
-                font-size: 0.7rem;
+                padding: 6px 1px;
+                font-size: 0.65rem;
+                overflow: hidden;
             }
 
             .calendar-days {
-                gap: 3px;
-                grid-template-columns: repeat(7, 1fr);
+                gap: 2px;
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+                overflow-x: hidden;
             }
 
             .calendar-day {
-                padding: 4px;
-                min-height: 55px;
+                padding: 3px;
+                min-height: 50px;
                 aspect-ratio: 1;
+                max-width: 100%;
+                overflow: hidden;
             }
 
             .day-number {
-                font-size: 0.75rem;
+                font-size: 0.7rem;
                 margin-bottom: 2px;
             }
 
@@ -854,7 +890,7 @@
             }
 
             .day-event {
-                font-size: 0.6rem;
+                font-size: 0.55rem;
                 padding: 1px 2px;
             }
 
@@ -875,84 +911,33 @@
 
         @media (max-width: 480px) {
             .app-wrapper {
-                padding: 8px;
+                padding: 6px;
             }
 
             .header {
-                padding: 16px 12px;
-            }
-
-            .header-icon {
-                width: 44px;
-                height: 44px;
-                font-size: 22px;
-            }
-
-            .header-text h1 {
-                font-size: 1.25rem;
-            }
-
-            .tabs {
-                padding: 4px;
-                gap: 4px;
-            }
-
-            .tab {
-                padding: 8px 10px;
-                font-size: 0.8rem;
+                padding: 16px 10px;
             }
 
             .card {
-                padding: 16px 12px;
+                padding: 16px 10px;
             }
 
             .calendar-weekdays {
-                gap: 2px;
+                gap: 1px;
             }
 
             .calendar-weekday {
-                padding: 6px 1px;
-                font-size: 0.65rem;
+                padding: 4px 0;
+                font-size: 0.6rem;
             }
 
             .calendar-days {
-                gap: 2px;
-            }
-
-            .calendar-day {
-                padding: 3px;
-                min-height: 48px;
-            }
-
-            .day-number {
-                font-size: 0.7rem;
-            }
-
-            .day-event {
-                font-size: 0.55rem;
-                padding: 1px;
-            }
-
-            .welcome-title {
-                font-size: 1.75rem;
-            }
-
-            .logo-icon {
-                width: 70px;
-                height: 70px;
-                font-size: 35px;
-            }
-        }
-
-        @media (max-width: 360px) {
-            .calendar-weekday {
-                font-size: 0.6rem;
-                padding: 4px 0;
+                gap: 1px;
             }
 
             .calendar-day {
                 padding: 2px;
-                min-height: 42px;
+                min-height: 45px;
             }
 
             .day-number {
@@ -961,6 +946,21 @@
 
             .day-event {
                 font-size: 0.5rem;
+                padding: 1px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .calendar-day {
+                min-height: 40px;
+            }
+
+            .day-number {
+                font-size: 0.6rem;
+            }
+
+            .day-event {
+                font-size: 0.45rem;
             }
         }
     </style>
