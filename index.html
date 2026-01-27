@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Assistant AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.6s ease;
+        }
+
+        .welcome-screen.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .welcome-content {
+            text-align: center;
+            max-width: 500px;
+            padding: 40px;
+        }
+
+        .logo-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.4);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-subtitle {
+            color: var(--text-muted);
+            font-size: 1.125rem;
+            margin-bottom: 48px;
+            font-weight: 300;
+        }
+
+        .welcome-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+        }
+
+        /* Main App */
+        .app-wrapper {
+            display: none;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-wrapper.show {
+            display: block;
+            animation: fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .header-text h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .header-text p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-sm {
+            padding: 10px 20px;
+            font-size: 0.875rem;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg-card-hover);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: var(--bg-card);
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            color: var(--text);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        /* Import Section */
+        .import-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .import-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .import-text h3 {
+            font-size: 1.125rem;
+            margin-bottom: 8px;
+        }
+
+        .import-text p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .imported-badge {
+            display: none;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success);
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+            font-weight: 500;
+        }
+
+        .imported-badge.show {
+            display: block;
+        }
+
+        /* Input */
+        textarea {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9375rem;
+            min-height: 120px;
+            resize: vertical;
+            transition: all 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Buttons Group */
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--border);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--danger);
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 48px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 24px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Results */
+        .result {
+            display: none;
+            margin-top: 24px;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .conflict-warning {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--danger);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .event-field {
+            margin-bottom: 20px;
+        }
+
+        .event-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .event-value {
+            font-size: 1.125rem;
+            font-weight: 500;
+        }
+
+        /* Suggestions */
+        .suggestions {
+            margin-top: 32px;
+        }
+
+        .suggestions-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .suggestion-card {
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .suggestion-card:hover {
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .suggestion-card.selected {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+        }
+
+        .suggestion-time {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .suggestion-reason {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+        }
+
+        .btn-success:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Examples */
+        .examples {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 32px;
+        }
+
+        .examples h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-muted);
+        }
+
+        .example-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.875rem;
+        }
+
+        .example-item:hover {
+            border-color: var(--primary);
+            transform: translateX(4px);
+            background: var(--bg-card-hover);
+        }
+
+        /* Color Picker */
+        .color-picker {
+            margin-top: 20px;
+        }
+
+        .color-picker-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .color-options {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: white;
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+
+        /* Calendar Grid */
+        .calendar-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 12px;
+        }
+
+        .calendar-nav button {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .calendar-nav button:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .calendar-month {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .calendar-weekday {
+            text-align: center;
+            padding: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            min-height: 80px;
+        }
+
+        .calendar-day:hover {
+            border-color: var(--primary);
+            background: var(--bg-card-hover);
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.3;
+        }
+
+        .calendar-day.today {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .day-number {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 0.875rem;
+        }
+
+        .day-events {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .day-event {
+            font-size: 0.7rem;
+            padding: 2px 4px;
+            border-radius: 3px;
+            color: white;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Адаптивность для планшетов и мобильных */
+        @media (max-width: 1024px) {
+            .container {
+                max-width: 100%;
+            }
+
+            .card {
+                padding: 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-wrapper {
+                padding: 12px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                padding: 20px;
+                text-align: center;
+            }
+
+            .header-left {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .header-text h1 {
+                font-size: 1.5rem;
+            }
+
+            .header-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .header-actions button {
+                width: 100%;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+                padding: 6px;
+            }
+
+            .tab {
+                font-size: 0.875rem;
+                padding: 10px 16px;
+                flex: 1;
+                min-width: calc(50% - 4px);
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .calendar-header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .calendar-nav {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .calendar-month {
+                font-size: 1.25rem;
+                text-align: center;
+            }
+
+            .calendar-weekdays {
+                gap: 4px;
+            }
+
+            .calendar-weekday {
+                padding: 8px 4px;
+                font-size: 0.75rem;
+            }
+
+            .calendar-days {
+                gap: 4px;
+            }
+
+            .calendar-day {
+                padding: 6px;
+                min-height: 60px;
+            }
+
+            .day-number {
+                font-size: 0.75rem;
+            }
+
+            .day-event {
+                font-size: 0.65rem;
+                padding: 2px 3px;
+            }
+
+            .btn {
+                font-size: 0.875rem;
+                padding: 12px 20px;
+            }
+
+            .welcome-content {
+                padding: 24px;
+            }
+
+            .welcome-title {
+                font-size: 2rem;
+            }
+
+            .welcome-subtitle {
+                font-size: 1rem;
+            }
+
+            .logo-icon {
+                width: 80px;
+                height: 80px;
+                font-size: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-wrapper {
+                padding: 8px;
+            }
+
+            .header {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            .header-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 24px;
+            }
+
+            .header-text h1 {
+                font-size: 1.25rem;
+            }
+
+            .header-text p {
+                font-size: 0.75rem;
+            }
+
+            .tabs {
+                padding: 4px;
+                gap: 4px;
+            }
+
+            .tab {
+                font-size: 0.75rem;
+                padding: 8px 12px;
+                border-radius: 8px;
+            }
+
+            .card {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            .card-title {
+                font-size: 1.125rem;
+            }
+
+            .calendar-header {
+                gap: 12px;
+            }
+
+            .calendar-month {
+                font-size: 1.125rem;
+            }
+
+            .calendar-nav button {
+                padding: 6px 12px;
+                font-size: 0.875rem;
+            }
+
+            .calendar-weekdays {
+                gap: 2px;
+            }
+
+            .calendar-weekday {
+                padding: 6px 2px;
+                font-size: 0.7rem;
+            }
+
+            .calendar-days {
+                gap: 2px;
+            }
+
+            .calendar-day {
+                padding: 4px;
+                min-height: 50px;
+                border-radius: 6px;
+            }
+
+            .day-number {
+                font-size: 0.7rem;
+                margin-bottom: 2px;
+            }
+
+            .day-events {
+                gap: 1px;
+            }
+
+            .day-event {
+                font-size: 0.6rem;
+                padding: 1px 2px;
+                border-radius: 2px;
+            }
+
+            .btn {
+                font-size: 0.8rem;
+                padding: 10px 16px;
+            }
+
+            .btn-sm {
+                font-size: 0.75rem;
+                padding: 8px 12px;
+            }
+
+            .welcome-content {
+                padding: 20px;
+            }
+
+            .welcome-title {
+                font-size: 1.75rem;
+            }
+
+            .welcome-subtitle {
+                font-size: 0.875rem;
+            }
+
+            .logo-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 35px;
+                margin-bottom: 24px;
+            }
+
+            .import-content {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+
+            .event-item {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .calendar-day {
+                min-height: 45px;
+                padding: 3px;
+            }
+
+            .day-number {
+                font-size: 0.65rem;
+            }
+
+            .day-event {
+                font-size: 0.55rem;
+            }
+
+            .calendar-weekday {
+                font-size: 0.65rem;
+                padding: 4px 1px;
+            }
+        }
+
+        /* Events List */
+        .events-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .event-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s;
+            border-left: 4px solid;
+        }
+
+        .event-item:hover {
+            border-color: var(--primary);
+        }
+
+        .event-actions {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .sync-section {
+            text-align: center;
+            margin-top: 32px;
+            padding: 32px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 64px 32px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+
+            .header-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+
+            .import-content {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .card {
+                padding: 24px 20px;
+            }
+
+            .welcome-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Welcome Screen -->
+    <div class="welcome-screen" id="welcomeScreen">
+        <div class="welcome-content">
+            <div class="logo-icon">🗓️</div>
+            <h1 class="welcome-title">Calendar Assistant AI</h1>
+            <p class="welcome-subtitle">Zarządzaj swoim czasem z pomocą sztucznej inteligencji</p>
+            <div class="welcome-buttons">
+                <button class="btn btn-primary" onclick="loginWithGoogle()">
+                    <span>📅</span>
+                    <span>Zaloguj przez Google</span>
+                </button>
+                <button class="btn btn-secondary" onclick="enterAsGuest()">
+                    <span>👤</span>
+                    <span>Kontynuuj jako gość</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-wrapper" id="appWrapper">
+        <div class="container">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <div class="header-icon">🗓️</div>
+                    <div class="header-text">
+                        <h1>Calendar Assistant AI</h1>
+                        <p>Twój inteligentny asystent kalendarza</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-ghost btn-sm" id="loginGoogleBtn" onclick="loginWithGoogle()" style="display: none;">
+                        📅 Połącz Google
+                    </button>
+                    <button class="btn btn-ghost btn-sm" id="logoutBtn" onclick="logoutGoogle()" style="display: none;">
+                        🚪 Wyloguj
+                    </button>
+                </div>
+            </header>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('add')">➕ Dodaj Wydarzenie</button>
+                <button class="tab" onclick="switchTab('calendar')">📅 Mój Kalendarz</button>
+            </div>
+
+            <!-- Add Event Tab -->
+            <div id="addTab" class="tab-content active">
+                <!-- Import Section -->
+                <div class="card import-card">
+                    <div class="import-content">
+                        <div class="import-text">
+                            <h3>📥 Import z Google Calendar</h3>
+                            <p>AI weźmie pod uwagę istniejące wydarzenia</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="importGoogleCalendar()">
+                            Importuj
+                        </button>
+                    </div>
+                    <div class="imported-badge" id="importedEvents">
+                        <span id="importedCount"></span>
+                    </div>
+                </div>
+
+                <!-- Main Input -->
+                <div class="card">
+                    <div class="card-title">✍️ Opisz swoje wydarzenie</div>
+                    <textarea
+                        id="eventDescription"
+                        placeholder="Np. 'Spotkanie z lekarzem w przyszły wtorek o 14:30' lub 'Obiad z Anną pojutrze' - AI zaproponuje najlepsze terminy!"></textarea>
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="analyzeEvent()">
+                            🤖 Znajdź termin
+                        </button>
+                        <button class="btn btn-danger" onclick="clearAll()">
+                            Wyczyść
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading -->
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p style="color: var(--text-muted);">AI analizuje Twój kalendarz...</p>
+                </div>
+
+                <!-- Results -->
+                <div class="result" id="result"></div>
+
+                <!-- Examples -->
+                <div class="examples">
+                    <h3>💡 Przykłady do wypróbowania:</h3>
+                    <div class="example-item" onclick="fillExample('Spotkanie z zespołem w przyszły poniedziałek o 10:00')">
+                        💼 Spotkanie z zespołem w przyszły poniedziałek o 10:00
+                    </div>
+                    <div class="example-item" onclick="fillExample('Wizyta u dentysty')">
+                        🦷 Wizyta u dentysty
+                    </div>
+                    <div class="example-item" onclick="fillExample('Obiad biznesowy')">
+                        🍽️ Obiad biznesowy
+                    </div>
+                    <div class="example-item" onclick="fillExample('Trening na siłowni jutro rano o 7:00')">
+                        💪 Trening na siłowni jutro rano o 7:00
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Tab -->
+            <div id="calendarTab" class="tab-content">
+                <!-- Calendar Grid -->
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <div class="calendar-nav">
+                            <button onclick="changeMonth(-1)">◀ Poprzedni</button>
+                            <button onclick="changeMonth(1)">Następny ▶</button>
+                        </div>
+                        <div class="calendar-month" id="calendarMonth"></div>
+                        <button class="btn btn-primary btn-sm" onclick="importGoogleCalendarToGrid()">
+                            📥 Import z Google Calendar
+                        </button>
+                    </div>
+                    <div class="calendar-weekdays">
+                        <div class="calendar-weekday">Pon</div>
+                        <div class="calendar-weekday">Wto</div>
+                        <div class="calendar-weekday">Śro</div>
+                        <div class="calendar-weekday">Czw</div>
+                        <div class="calendar-weekday">Pią</div>
+                        <div class="calendar-weekday">Sob</div>
+                        <div class="calendar-weekday">Nie</div>
+                    </div>
+                    <div class="calendar-days" id="calendarDays"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📋 Lista Wydarzeń</div>
+                    <div class="events-grid" id="eventsList"></div>
+                </div>
+
+                <div class="sync-section">
+                    <button class="btn btn-primary" onclick="syncToGoogle()">
+                        📤 Synchronizuj z Google Calendar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentEventData = null;
+        let selectedSuggestion = null;
+        let importedGoogleEvents = [];
+        let currentCalendarDate = new Date();
+        let allEvents = [];
+
+        async function restoreSession() {
+            try {
+                const response = await fetch('/google/status');
+                const data = await response.json();
+
+                console.log('Session status:', data);
+
+                if (data.authenticated) {
+                    console.log('User is authenticated');
+                    // Пользователь залогинен, проверяем что welcome screen скрыт
+                    if (!document.getElementById('appWrapper').classList.contains('show')) {
+                        hideWelcomeScreen();
+                    }
+                }
+            } catch (error) {
+                console.error('Error restoring session:', error);
+            }
+        }
+
+        async function checkInitialState() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+            const auth = urlParams.get('auth');
+
+            // Сначала пытаемся восстановить сессию
+            await restoreSession();
+
+            if (mode === 'guest' || auth === 'success' || auth === 'error') {
+                hideWelcomeScreen();
+                await checkAuthStatus();
+                loadEventsData();
+            }
+
+            if (auth === 'success') {
+                alert('✅ Pomyślnie połączono z Google Calendar!');
+                window.history.replaceState({}, document.title, '/');
+            } else if (auth === 'error') {
+                alert('❌ Błąd połączenia z Google Calendar');
+                window.history.replaceState({}, document.title, '/');
+            }
+        }
+
+        function hideWelcomeScreen() {
+            document.getElementById('welcomeScreen').classList.add('hide');
+            document.getElementById('appWrapper').classList.add('show');
+        }
+
+        function enterAsGuest() {
+            window.location.href = '/guest';
+        }
+
+        function loginWithGoogle() {
+            window.location.href = '/google/login';
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/google/status');
+                const data = await response.json();
+
+                const logoutBtn = document.getElementById('logoutBtn');
+                const loginGoogleBtn = document.getElementById('loginGoogleBtn');
+
+                if (data.authenticated) {
+                    logoutBtn.style.display = 'block';
+                    loginGoogleBtn.style.display = 'none';
+                } else {
+                    logoutBtn.style.display = 'none';
+                    if (data.guest_mode) {
+                        loginGoogleBtn.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Błąd sprawdzania statusu:', error);
+            }
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+            if (tab === 'add') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('addTab').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('calendarTab').classList.add('active');
+                loadEventsData();
+            }
+        }
+
+        function fillExample(text) {
+            document.getElementById('eventDescription').value = text;
+        }
+
+        function clearAll() {
+            document.getElementById('eventDescription').value = '';
+            document.getElementById('result').classList.remove('show');
+            document.getElementById('loading').classList.remove('show');
+            currentEventData = null;
+            selectedSuggestion = null;
+        }
+
+        async function importGoogleCalendar() {
+            try {
+                const authCheck = await fetch('/google/status');
+                const authData = await authCheck.json();
+
+                if (!authData.authenticated) {
+                    if (confirm('🔐 Aby importować wydarzenia, musisz się zalogować.\n\nPrzejść do logowania?')) {
+                        window.location.href = '/google/login';
+                    }
+                    return;
+                }
+
+                const response = await fetch('/google/import');
+                const data = await response.json();
+
+                if (data.success) {
+                    importedGoogleEvents = data.events;
+                    document.getElementById('importedEvents').classList.add('show');
+                    document.getElementById('importedCount').innerHTML =
+                        `✅ Zaimportowano <strong>${data.count}</strong> wydarzeń`;
+                } else {
+                    alert('❌ Błąd importu: ' + (data.error || 'Nieznany błąd'));
+                }
+            } catch (error) {
+                console.error('Błąd importu:', error);
+                alert('❌ Błąd połączenia: ' + error.message);
+            }
+        }
+
+        async function analyzeEvent() {
+            const input = document.getElementById('eventDescription').value.trim();
+            if (!input) {
+                alert('⚠️ Proszę wpisać opis wydarzenia!');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+
+            loading.classList.add('show');
+            result.classList.remove('show');
+            selectedSuggestion = null;
+
+            try {
+                const response = await fetch("/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ description: input })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Błąd serwera: ' + response.statusText);
+                }
+
+                const eventData = await response.json();
+
+                if (eventData.error) {
+                    throw new Error(eventData.error);
+                }
+
+                currentEventData = eventData;
+                displayResult(eventData);
+
+            } catch (error) {
+                console.error('Błąd:', error);
+                result.innerHTML = `
+                    <div class="card">
+                        <p style="color: var(--danger);">❌ Błąd analizy: ${error.message}</p>
+                    </div>
+                `;
+                result.classList.add('show');
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        function displayResult(data) {
+            const evt = data.requested_event;
+
+            let html = '<div class="card">';
+
+            if (evt.has_conflict) {
+                html += `
+                    <div class="conflict-warning">
+                        <span>⚠️</span>
+                        <span>Konflikt! Ten termin koliduje z istniejącym wydarzeniem.</span>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="event-field">
+                    <div class="event-label">📌 Tytuł</div>
+                    <div class="event-value">${evt.title}</div>
+                </div>
+                <div class="event-field">
+                    <div class="event-label">📅 Data</div>
+                    <div class="event-value">${evt.date}</div>
+                </div>
+                <div class="event-field">
+                    <div class="event-label">🕐 Godzina</div>
+                    <div class="event-value">${evt.time}</div>
+                </div>
+                <div class="event-field">
+                    <div class="event-label">⏱️ Czas trwania</div>
+                    <div class="event-value">${evt.duration} minut</div>
+                </div>
+                <div class="event-field">
+                    <div class="event-label">📝 Opis</div>
+                    <div class="event-value">${evt.description}</div>
+                </div>
+            `;
+
+            if (!evt.has_conflict && data.suggestions.length === 0) {
+                html += `
+                    <div class="color-picker">
+                        <label class="color-picker-label">🎨 Wybierz kolor dla wydarzenia:</label>
+                        <div class="color-options">
+                            <div class="color-option selected" style="background: #4285f4;" data-color="#4285f4"></div>
+                            <div class="color-option" style="background: #dc2127;" data-color="#dc2127"></div>
+                            <div class="color-option" style="background: #f4b400;" data-color="#f4b400"></div>
+                            <div class="color-option" style="background: #0f9d58;" data-color="#0f9d58"></div>
+                            <div class="color-option" style="background: #ff6d00;" data-color="#ff6d00"></div>
+                            <div class="color-option" style="background: #7986cb;" data-color="#7986cb"></div>
+                            <div class="color-option" style="background: #33b679;" data-color="#33b679"></div>
+                            <div class="color-option" style="background: #8e24aa;" data-color="#8e24aa"></div>
+                            <div class="color-option" style="background: #e67c73;" data-color="#e67c73"></div>
+                            <div class="color-option" style="background: #616161;" data-color="#616161"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-success" onclick="addToCalendar(currentEventData.requested_event)">
+                        ✅ Dodaj do kalendarza
+                    </button>
+                `;
+            }
+
+            html += `</div>`;
+
+            if (data.suggestions && data.suggestions.length > 0) {
+                html += `
+                    <div class="suggestions">
+                        <div class="suggestions-title">💡 Proponowane terminy</div>
+                `;
+
+                data.suggestions.forEach((sug, idx) => {
+                    html += `
+                        <div class="suggestion-card" onclick="selectSuggestion(${idx})">
+                            <div class="suggestion-time">
+                                📅 ${sug.date} • 🕐 ${sug.time} • ⏱️ ${sug.duration} min
+                            </div>
+                            <div class="suggestion-reason">${sug.reason}</div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                    <div class="color-picker">
+                        <label class="color-picker-label">🎨 Wybierz kolor dla wydarzenia:</label>
+                        <div class="color-options">
+                            <div class="color-option selected" style="background: #4285f4;" data-color="#4285f4"></div>
+                            <div class="color-option" style="background: #dc2127;" data-color="#dc2127"></div>
+                            <div class="color-option" style="background: #f4b400;" data-color="#f4b400"></div>
+                            <div class="color-option" style="background: #0f9d58;" data-color="#0f9d58"></div>
+                            <div class="color-option" style="background: #ff6d00;" data-color="#ff6d00"></div>
+                            <div class="color-option" style="background: #7986cb;" data-color="#7986cb"></div>
+                            <div class="color-option" style="background: #33b679;" data-color="#33b679"></div>
+                            <div class="color-option" style="background: #8e24aa;" data-color="#8e24aa"></div>
+                            <div class="color-option" style="background: #e67c73;" data-color="#e67c73"></div>
+                            <div class="color-option" style="background: #616161;" data-color="#616161"></div>
+                        </div>
+                    </div>
+                        <button class="btn btn-success" id="addSuggestionBtn" onclick="addSelectedSuggestion()" disabled>
+                            ✅ Dodaj wybrany termin
+                        </button>
+                    </div>
+                `;
+            }
+
+            document.getElementById('result').innerHTML = html;
+            document.getElementById('result').classList.add('show');
+
+            // Add color picker listeners
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+            });
+        }
+
+        function selectSuggestion(idx) {
+            selectedSuggestion = idx;
+
+            document.querySelectorAll('.suggestion-card').forEach((card, i) => {
+                if (i === idx) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+
+            const btn = document.getElementById('addSuggestionBtn');
+            if (btn) {
+                btn.disabled = false;
+            }
+        }
+
+        async function addSelectedSuggestion() {
+            if (selectedSuggestion === null) {
+                alert('⚠️ Wybierz termin!');
+                return;
+            }
+
+            const suggestion = currentEventData.suggestions[selectedSuggestion];
+            const eventToAdd = {
+                title: currentEventData.requested_event.title,
+                date: suggestion.date,
+                time: suggestion.time,
+                duration: suggestion.duration,
+                description: currentEventData.requested_event.description
+            };
+
+            await addToCalendar(eventToAdd);
+        }
+
+        async function addToCalendar(eventData) {
+            // Get selected color
+            const selectedColorEl = document.querySelector('.color-option.selected');
+            const color = selectedColorEl ? selectedColorEl.dataset.color : '#4285f4';
+
+            try {
+                const response = await fetch('/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...eventData,
+                        color: color
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('✅ Wydarzenie dodane!');
+                    clearAll();
+                    switchTab('calendar');
+                } else {
+                    alert('❌ Błąd dodawania wydarzenia');
+                }
+            } catch (error) {
+                console.error('Błąd:', error);
+                alert('❌ Błąd dodawania wydarzenia');
+            }
+        }
+
+        async function loadEventsData() {
+            try {
+                const response = await fetch('/events');
+                const events = await response.json();
+                allEvents = events;
+
+                const eventsList = document.getElementById('eventsList');
+
+                if (events.length === 0) {
+                    eventsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <p>Brak wydarzeń w kalendarzu</p>
+                        </div>
+                    `;
+                } else {
+                    eventsList.innerHTML = events.map((event, idx) => `
+                        <div class="event-item" style="border-left-color: ${event.color || '#4285f4'};">
+                            <div class="event-field">
+                                <div class="event-label">📌 Tytuł</div>
+                                <div class="event-value">${event.title}</div>
+                            </div>
+                            <div class="event-field">
+                                <div class="event-label">📅 Data i godzina</div>
+                                <div class="event-value">${event.date} • ${event.time}</div>
+                            </div>
+                            <div class="event-field">
+                                <div class="event-label">⏱️ Czas trwania</div>
+                                <div class="event-value">${event.duration} minut</div>
+                            </div>
+                            <div class="event-field">
+                                <div class="event-label">📝 Opis</div>
+                                <div class="event-value">${event.description}</div>
+                            </div>
+                            <div class="event-actions">
+                                <button class="btn btn-danger btn-sm" onclick="deleteEvent(${idx})">
+                                    🗑️ Usuń
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                renderCalendar();
+            } catch (error) {
+                console.error('Błąd ładowania wydarzeń:', error);
+            }
+        }
+
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+
+            const monthNames = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+                              'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
+            document.getElementById('calendarMonth').textContent = `${monthNames[month]} ${year}`;
+
+            const firstDay = new Date(year, month, 1);
+            let firstDayWeekday = firstDay.getDay();
+            firstDayWeekday = firstDayWeekday === 0 ? 6 : firstDayWeekday - 1;
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+            const calendarDays = document.getElementById('calendarDays');
+            calendarDays.innerHTML = '';
+
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            for (let i = firstDayWeekday - 1; i >= 0; i--) {
+                const day = daysInPrevMonth - i;
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day other-month';
+                dayDiv.innerHTML = `<div class="day-number">${day}</div>`;
+                calendarDays.appendChild(dayDiv);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+
+                if (dateStr === todayStr) {
+                    dayDiv.classList.add('today');
+                }
+
+                let dayHTML = `<div class="day-number">${day}</div><div class="day-events">`;
+
+                const dayEvents = allEvents.filter(e => e.date === dateStr);
+                dayEvents.forEach(event => {
+                    const color = event.color || '#4285f4';
+                    dayHTML += `<div class="day-event" style="background: ${color};" title="${event.title} - ${event.time}">${event.title}</div>`;
+                });
+
+                dayHTML += '</div>';
+                dayDiv.innerHTML = dayHTML;
+                calendarDays.appendChild(dayDiv);
+            }
+
+            const totalCells = calendarDays.children.length;
+            const remainingCells = 42 - totalCells;
+            for (let day = 1; day <= remainingCells; day++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day other-month';
+                dayDiv.innerHTML = `<div class="day-number">${day}</div>`;
+                calendarDays.appendChild(dayDiv);
+            }
+        }
+
+        function changeMonth(delta) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        async function importGoogleCalendarToGrid() {
+            try {
+                const authCheck = await fetch('/google/status');
+                const authData = await authCheck.json();
+
+                if (!authData.authenticated) {
+                    if (confirm('🔐 Aby importować wydarzenia, musisz się zalogować.\n\nPrzejść do logowania?')) {
+                        window.location.href = '/google/login';
+                    }
+                    return;
+                }
+
+                const response = await fetch('/google/import-to-local', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ Zaimportowano ${data.count} wydarzeń z Google Calendar!`);
+                    loadEventsData();
+                } else {
+                    alert('❌ Błąd importu: ' + (data.error || 'Nieznany błąd'));
+                }
+            } catch (error) {
+                console.error('Błąd importu:', error);
+                alert('❌ Błąd połączenia: ' + error.message);
+            }
+        }
+
+        async function deleteEvent(idx) {
+            if (!confirm('🗑️ Czy na pewno chcesz usunąć to wydarzenie?')) return;
+
+            try {
+                const response = await fetch(`/events/${idx}`, { method: 'DELETE' });
+                const data = await response.json();
+
+                if (data.success) {
+                    loadEventsData();
+                } else {
+                    alert('❌ Błąd usuwania wydarzenia');
+                }
+            } catch (error) {
+                console.error('Błąd:', error);
+                alert('❌ Błąd usuwania wydarzenia');
+            }
+        }
+
+        async function syncToGoogle() {
+            try {
+                const authCheck = await fetch('/google/status');
+                const authData = await authCheck.json();
+
+                if (!authData.authenticated) {
+                    if (confirm('🔐 Musisz się zalogować.\n\nPrzejść do logowania?')) {
+                        window.location.href = '/google/login';
+                    }
+                    return;
+                }
+
+                const response = await fetch('/google/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ Zsynchronizowano ${result.synced} wydarzeń!`);
+                    loadEventsData();
+                } else {
+                    alert('❌ Błąd synchronizacji: ' + (result.error || 'Nieznany błąd'));
+                }
+            } catch (error) {
+                console.error('Błąd:', error);
+                alert('❌ Błąd połączenia: ' + error.message);
+            }
+        }
+
+        async function logoutGoogle() {
+            if (confirm('🚪 Czy na pewno chcesz się wylogować?')) {
+                window.location.href = '/google/logout';
+            }
+        }
+
+        checkInitialState();
+    </script>
+</body>
+</html>
