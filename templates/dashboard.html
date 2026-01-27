@@ -79,6 +79,74 @@
       opacity: 0.6;
       font-size: 16px;
     }
+
+    /* Адаптивность для мобильных устройств */
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        gap: 16px;
+        padding: 20px;
+        text-align: center;
+      }
+
+      header h2 {
+        font-size: 1.5rem;
+      }
+
+      .logout {
+        width: 100%;
+        text-align: center;
+      }
+
+      main {
+        padding: 20px;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .event {
+        padding: 16px;
+      }
+
+      .event h3 {
+        font-size: 16px;
+      }
+
+      .event time {
+        font-size: 13px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      header {
+        padding: 16px;
+      }
+
+      header h2 {
+        font-size: 1.25rem;
+      }
+
+      main {
+        padding: 16px;
+        gap: 12px;
+      }
+
+      .event {
+        padding: 14px;
+      }
+
+      .event h3 {
+        font-size: 15px;
+      }
+
+      .event time {
+        font-size: 12px;
+      }
+
+      .empty {
+        font-size: 14px;
+      }
+    }
   </style>
 </head>
 <body>
