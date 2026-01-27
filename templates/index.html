@@ -684,281 +684,6 @@
             white-space: nowrap;
         }
 
-        /* Адаптивность для планшетов и мобильных */
-        @media (max-width: 1024px) {
-            .container {
-                max-width: 100%;
-            }
-
-            .card {
-                padding: 24px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .app-wrapper {
-                padding: 12px;
-            }
-
-            .header {
-                flex-direction: column;
-                gap: 16px;
-                padding: 20px;
-                text-align: center;
-            }
-
-            .header-left {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .header-text h1 {
-                font-size: 1.5rem;
-            }
-
-            .header-actions {
-                width: 100%;
-                flex-direction: column;
-            }
-
-            .header-actions button {
-                width: 100%;
-            }
-
-            .tabs {
-                flex-wrap: wrap;
-                padding: 6px;
-            }
-
-            .tab {
-                font-size: 0.875rem;
-                padding: 10px 16px;
-                flex: 1;
-                min-width: calc(50% - 4px);
-            }
-
-            .card {
-                padding: 20px;
-            }
-
-            .calendar-header {
-                flex-direction: column;
-                gap: 16px;
-                align-items: stretch;
-            }
-
-            .calendar-nav {
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .calendar-month {
-                font-size: 1.25rem;
-                text-align: center;
-            }
-
-            .calendar-weekdays {
-                gap: 4px;
-            }
-
-            .calendar-weekday {
-                padding: 8px 4px;
-                font-size: 0.75rem;
-            }
-
-            .calendar-days {
-                gap: 4px;
-            }
-
-            .calendar-day {
-                padding: 6px;
-                min-height: 60px;
-            }
-
-            .day-number {
-                font-size: 0.75rem;
-            }
-
-            .day-event {
-                font-size: 0.65rem;
-                padding: 2px 3px;
-            }
-
-            .btn {
-                font-size: 0.875rem;
-                padding: 12px 20px;
-            }
-
-            .welcome-content {
-                padding: 24px;
-            }
-
-            .welcome-title {
-                font-size: 2rem;
-            }
-
-            .welcome-subtitle {
-                font-size: 1rem;
-            }
-
-            .logo-icon {
-                width: 80px;
-                height: 80px;
-                font-size: 40px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .app-wrapper {
-                padding: 8px;
-            }
-
-            .header {
-                padding: 16px;
-                border-radius: 12px;
-            }
-
-            .header-icon {
-                width: 48px;
-                height: 48px;
-                font-size: 24px;
-            }
-
-            .header-text h1 {
-                font-size: 1.25rem;
-            }
-
-            .header-text p {
-                font-size: 0.75rem;
-            }
-
-            .tabs {
-                padding: 4px;
-                gap: 4px;
-            }
-
-            .tab {
-                font-size: 0.75rem;
-                padding: 8px 12px;
-                border-radius: 8px;
-            }
-
-            .card {
-                padding: 16px;
-                border-radius: 12px;
-            }
-
-            .card-title {
-                font-size: 1.125rem;
-            }
-
-            .calendar-header {
-                gap: 12px;
-            }
-
-            .calendar-month {
-                font-size: 1.125rem;
-            }
-
-            .calendar-nav button {
-                padding: 6px 12px;
-                font-size: 0.875rem;
-            }
-
-            .calendar-weekdays {
-                gap: 2px;
-            }
-
-            .calendar-weekday {
-                padding: 6px 2px;
-                font-size: 0.7rem;
-            }
-
-            .calendar-days {
-                gap: 2px;
-            }
-
-            .calendar-day {
-                padding: 4px;
-                min-height: 50px;
-                border-radius: 6px;
-            }
-
-            .day-number {
-                font-size: 0.7rem;
-                margin-bottom: 2px;
-            }
-
-            .day-events {
-                gap: 1px;
-            }
-
-            .day-event {
-                font-size: 0.6rem;
-                padding: 1px 2px;
-                border-radius: 2px;
-            }
-
-            .btn {
-                font-size: 0.8rem;
-                padding: 10px 16px;
-            }
-
-            .btn-sm {
-                font-size: 0.75rem;
-                padding: 8px 12px;
-            }
-
-            .welcome-content {
-                padding: 20px;
-            }
-
-            .welcome-title {
-                font-size: 1.75rem;
-            }
-
-            .welcome-subtitle {
-                font-size: 0.875rem;
-            }
-
-            .logo-icon {
-                width: 70px;
-                height: 70px;
-                font-size: 35px;
-                margin-bottom: 24px;
-            }
-
-            .import-content {
-                flex-direction: column;
-                gap: 12px;
-                text-align: center;
-            }
-
-            .event-item {
-                padding: 16px;
-            }
-        }
-
-        @media (max-width: 360px) {
-            .calendar-day {
-                min-height: 45px;
-                padding: 3px;
-            }
-
-            .day-number {
-                font-size: 0.65rem;
-            }
-
-            .day-event {
-                font-size: 0.55rem;
-            }
-
-            .calendar-weekday {
-                font-size: 0.65rem;
-                padding: 4px 1px;
-            }
-        }
-
         /* Events List */
         .events-grid {
             display: grid;
@@ -1007,10 +732,43 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            body {
+                overflow-x: hidden;
+            }
+
+            .app-wrapper {
+                padding: 10px;
+                overflow-x: hidden;
+            }
+
+            .container {
+                max-width: 100%;
+                overflow-x: hidden;
+            }
+
             .header {
                 flex-direction: column;
                 text-align: center;
-                gap: 20px;
+                gap: 16px;
+                padding: 20px 16px;
+            }
+
+            .header-left {
+                flex-direction: column;
+            }
+
+            .header-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 24px;
+            }
+
+            .header-text h1 {
+                font-size: 1.5rem;
+            }
+
+            .header-text p {
+                font-size: 0.875rem;
             }
 
             .header-actions {
@@ -1022,17 +780,187 @@
                 grid-template-columns: 1fr;
             }
 
+            .tabs {
+                flex-wrap: wrap;
+                padding: 6px;
+                gap: 6px;
+            }
+
+            .tab {
+                flex: 1;
+                min-width: calc(50% - 6px);
+                padding: 10px 12px;
+                font-size: 0.875rem;
+            }
+
             .import-content {
                 flex-direction: column;
                 gap: 16px;
             }
 
             .card {
-                padding: 24px 20px;
+                padding: 20px 16px;
+                margin-bottom: 16px;
+            }
+
+            .card-title {
+                font-size: 1.125rem;
+            }
+
+            /* КАЛЕНДАРЬ - КЛЮЧЕВЫЕ ИСПРАВЛЕНИЯ */
+            .calendar-header {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .calendar-nav {
+                justify-content: space-between;
+                width: 100%;
+            }
+
+            .calendar-month {
+                font-size: 1.25rem;
+                text-align: center;
+            }
+
+            .calendar-weekdays {
+                gap: 3px;
+                grid-template-columns: repeat(7, 1fr);
+            }
+
+            .calendar-weekday {
+                padding: 8px 2px;
+                font-size: 0.7rem;
+            }
+
+            .calendar-days {
+                gap: 3px;
+                grid-template-columns: repeat(7, 1fr);
+            }
+
+            .calendar-day {
+                padding: 4px;
+                min-height: 55px;
+                aspect-ratio: 1;
+            }
+
+            .day-number {
+                font-size: 0.75rem;
+                margin-bottom: 2px;
+            }
+
+            .day-events {
+                gap: 1px;
+            }
+
+            .day-event {
+                font-size: 0.6rem;
+                padding: 1px 2px;
             }
 
             .welcome-title {
                 font-size: 2rem;
+            }
+
+            .welcome-content {
+                padding: 24px;
+            }
+
+            .logo-icon {
+                width: 80px;
+                height: 80px;
+                font-size: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-wrapper {
+                padding: 8px;
+            }
+
+            .header {
+                padding: 16px 12px;
+            }
+
+            .header-icon {
+                width: 44px;
+                height: 44px;
+                font-size: 22px;
+            }
+
+            .header-text h1 {
+                font-size: 1.25rem;
+            }
+
+            .tabs {
+                padding: 4px;
+                gap: 4px;
+            }
+
+            .tab {
+                padding: 8px 10px;
+                font-size: 0.8rem;
+            }
+
+            .card {
+                padding: 16px 12px;
+            }
+
+            .calendar-weekdays {
+                gap: 2px;
+            }
+
+            .calendar-weekday {
+                padding: 6px 1px;
+                font-size: 0.65rem;
+            }
+
+            .calendar-days {
+                gap: 2px;
+            }
+
+            .calendar-day {
+                padding: 3px;
+                min-height: 48px;
+            }
+
+            .day-number {
+                font-size: 0.7rem;
+            }
+
+            .day-event {
+                font-size: 0.55rem;
+                padding: 1px;
+            }
+
+            .welcome-title {
+                font-size: 1.75rem;
+            }
+
+            .logo-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 35px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .calendar-weekday {
+                font-size: 0.6rem;
+                padding: 4px 0;
+            }
+
+            .calendar-day {
+                padding: 2px;
+                min-height: 42px;
+            }
+
+            .day-number {
+                font-size: 0.65rem;
+            }
+
+            .day-event {
+                font-size: 0.5rem;
             }
         }
     </style>
